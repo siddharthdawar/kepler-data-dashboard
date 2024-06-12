@@ -4,7 +4,7 @@ const launchesRouter = require('./routes/launches/launches.router');
 const morgan = require('morgan');
 const path = require('path');
 const planetsRouter = require('./routes/planets/planets.router');
-const planetsController = require('./routes/planets/planets.controller');
+// const planetsController = require('./routes/planets/planets.controller');
 
 const app = express();
 
