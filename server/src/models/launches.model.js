@@ -15,11 +15,17 @@ const getLatestFlightNumber = async () => {
     return latestLaunch.flightNumber
 };
 
-const getAllLaunches = async () =>
-    await launchesDB.find({}, {
-        __v: 0,
-        _id: 0
-    });
+const getAllLaunches = async (skip, limit) =>
+    await launchesDB
+        .find({}, {
+            __v: 0,
+            _id: 0
+        })
+        .sort({
+            flightNumber: 1 // 1 for ascending, -1 for descending
+        })
+        .skip(skip) // skip the first "foo" number of documents (mongoDB does not have inbuilt pagination feature)
+        .limit(limit); // number of results per page
 
 const saveLaunch = async (launch) =>
     await launchesDB.findOneAndUpdate({
@@ -42,8 +48,11 @@ const addNewLaunch = async (newLaunch) => {
     await saveLaunch(launchObject);
 };
 
+const findLaunch = async (filter) =>
+    await launchesDB.findOne(filter);
+
 const doesFlightExist = async (flightNumber) =>
-    await launchesDB.findOne({
+    await findLaunch({
         flightNumber
     });
 
@@ -55,9 +64,74 @@ const abortLaunch = async (flightNumber) =>
         upcoming: false
     });
 
+const populateDB = async () => {
+    const body = {
+        options: {
+            pagination: false,
+            populate: [
+                {
+                    path: 'payloads',
+                    select: {
+                        customers: 1
+                    }
+                },
+                {
+                    path: 'rocket',
+                    select: {
+                        name: 1
+                    }
+                }
+            ]
+        },
+        query: {}
+    };
+
+    const response = await fetch('https://api.spacexdata.com/v4/launches/query', {
+        body: JSON.stringify(body),
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        method: 'POST'
+    });
+
+    if (response.status !== 200) {
+        throw new Error('Problem downloading spacex launches');
+    }
+
+    const data = await response.json();
+
+    for (const doc of data.docs) {
+        const launch = {
+            customers: doc.payloads.flatMap((payload) => payload.customers),
+            flightNumber: doc.flight_number,
+            launchDate: doc.date_local,
+            mission: doc.name,
+            rocket: doc.rocket.name,
+            success: doc.success,
+            upcoming: doc.upcoming
+        };
+
+        await saveLaunch(launch);
+    }
+};
+
+const loadSpaceXLaunches = async () => {
+    const firstLaunch = await findLaunch({
+        flightNumber: 1
+    });
+
+    // Launch data already fetched and saved in DB
+    if (firstLaunch) {
+        return;
+    }
+
+    await populateDB();
+};
+
 module.exports = {
     abortLaunch,
     addNewLaunch,
     doesFlightExist,
-    getAllLaunches
+    getAllLaunches,
+    loadSpaceXLaunches
 };

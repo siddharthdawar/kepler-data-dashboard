@@ -1,7 +1,12 @@
 const launchesModel = require('../../models/launches.model');
+const queryServices = require('../../services/query');
 
-const getAllLaunches = async (req, res) =>
-    res.status(200).json(await launchesModel.getAllLaunches()); // status is optional since express returns 200 by default
+const getAllLaunches = async (req, res) => {
+    const { limit, skip } = queryServices.getPagination(req.query);
+    const launches = await launchesModel.getAllLaunches(skip, limit);
+
+    return res.status(200).json(launches); // status is optional since express returns 200 by default
+};
 
 const addNewLaunch = async (req, res) => {
     const {body} = req;

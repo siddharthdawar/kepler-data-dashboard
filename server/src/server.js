@@ -3,6 +3,7 @@ const app = require('./app');
 const mongoServices = require('./services/mongo');
 const http = require('http');
 const {loadPlanetsData} = require('./models/planets.model');
+const {loadSpaceXLaunches} = require('./models/launches.model');
 // const os = require('os');
 
 const PORT = process.env.PORT || 8000; // Lets user define a different port at runtime (e.g., "start": "PORT=3000 node src/server.js",)
@@ -14,6 +15,7 @@ const startServer = async () => {
     // wait until the csv file has been fully parsed so that planets data is available before listening for requests
     // prevents empty data to be sent in a request's response
     await loadPlanetsData();
+    await loadSpaceXLaunches();
 
     // if (cluster.isMaster) {
         // cluster.fork();
