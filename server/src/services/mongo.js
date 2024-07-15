@@ -1,3 +1,4 @@
+// reads values from .env file and adds it to node's process.env object
 require('dotenv').config();
 
 const mongoose = require('mongoose');
